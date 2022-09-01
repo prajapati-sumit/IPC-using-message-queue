@@ -10,6 +10,8 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#define SERVER_TO_CLIENT_ID 1
+#define CLIENT_TO_SERVER_ID 2
 
 int MIN, MAX;
 
@@ -23,38 +25,42 @@ int serverGuess;           // value guessed by server (G) for each round
 int numClients;            // number of clients playing the game
 int roundNumber;           // current round number of the game
 int winnerOfCurrentRound;  // id of the client who won the current round
-const int points = 5;      // points received for winning each round
+const int points = 5;     // points received for winning each round
 const int threshold = 50;  // points required to win the game
 
-int msg_type;
+long int msg_type;  // type of message received
 struct Message {
-    long int type;
+    long int type;  // type of message sent
     int num;
 } msg;
 
 int send(int data, int clientIdx) {
     msg.num = data;
-    fprintf(stdout, "Server sent: %d to queue %d\n", data, msqids[clientIdx]);
+    msg.type = SERVER_TO_CLIENT_ID;
+    // fprintf(stdout, "Server sent: %d to queue %d of type %ld\n", data,
+    //         msqids[clientIdx], msg.type);
 
     return msgsnd(msqids[clientIdx], (void*)&msg, sizeof(msg.num), 0);
 }
 int receive(int clientIdx) {
+    msg_type = CLIENT_TO_SERVER_ID;
+    msg.type = SERVER_TO_CLIENT_ID;
     int status =
         msgrcv(msqids[clientIdx], (void*)&msg, sizeof(msg.num), msg_type, 0);
-    fprintf(stdout, "Server received: %d from queue %d \n", msg.num,msqids[clientIdx]);
+    // fprintf(stdout, "Server received: %d from queue %d of  type %ld\n",
+    // msg.num,
+    //         msqids[clientIdx], msg_type);
     return (status == -1 ? -1 : msg.num);
 }
 int getRandomNumber(int l, int r) { return (rand() % (r - l + 1)) + l; }
 
 void initSetup() {
-    srand(time(NULL));
+    time_t t;
+    srand((int)time(&t) % getpid());  // giving random seed
 
-    msg_type = 1;
-    msg.type = 1;
     roundNumber = 1;
-    numClients = 1;
-    fprintf(stdout, "Enter the number of clients(k):");
 
+    fprintf(stdout, "Enter the number of clients(k):");
     fscanf(stdin, "%d", &numClients);
 }
 void initGame() {
@@ -78,29 +84,27 @@ int printRequiredStats() {
         }
     }
     clientScore[winnerOfCurrentRound] += points;
-    if (0) {
-        fprintf(stdout, "Round #%d ,Range = [%d,%d]\n", roundNumber, MIN, MAX);
-        fprintf(stdout, "Received tokens from the clients:\n");
-        fprintf(stdout, "c_ids:\t\t");
-        for (int i = 0; i < numClients; i++) {
-            fprintf(stdout, "%d\t\t", i);
-        }
-        fprintf(stdout, "\n");
-        fprintf(stdout, "tokens:\t\t");
-        for (int i = 0; i < numClients; i++) {
-            fprintf(stdout, "%d\t\t", clientGuess[i]);
-        }
-        fprintf(stdout, "\n");
-        fprintf(stdout, "scores:\t\t");
-        for (int i = 0; i < numClients; i++) {
-            fprintf(stdout, "%d\t\t", clientScore[i]);
-        }
-        fprintf(stdout, "\n\n");
-        fprintf(stdout, "Winner of round #%d is Client #%d\n", roundNumber,
-                winnerOfCurrentRound);
-
-        fprintf(stdout, "\n\n");
+    fprintf(stdout, "\nRound #%d ,Range = [%d,%d]\n", roundNumber, MIN, MAX);
+    fprintf(stdout, "Received tokens from the clients:\n");
+    fprintf(stdout, "c_ids:\t\t");
+    for (int i = 0; i < numClients; i++) {
+        fprintf(stdout, "%d\t\t", i);
     }
+    fprintf(stdout, "\n");
+    fprintf(stdout, "tokens:\t\t");
+    for (int i = 0; i < numClients; i++) {
+        fprintf(stdout, "%d\t\t", clientGuess[i]);
+    }
+    fprintf(stdout, "\n");
+    fprintf(stdout, "scores:\t\t");
+    for (int i = 0; i < numClients; i++) {
+        fprintf(stdout, "%d\t\t", clientScore[i]);
+    }
+    fprintf(stdout, "\n\n");
+    fprintf(stdout, "Winner of round #%d is Client #%d\n", roundNumber,
+            winnerOfCurrentRound);
+
+    fprintf(stdout, "\n\n");
     roundNumber++;
     if (clientScore[winnerOfCurrentRound] >= threshold) {
         fprintf(stdout, "Client #%d won the game\n ", winnerOfCurrentRound);
@@ -124,7 +128,6 @@ int main() {
     pids = (pid_t*)malloc(sizeof(pid_t) * numClients);
 
     for (int i = 0; i < numClients; i++) {
-        fprintf(stderr, "forking client\n");
 
         pids[i] = fork();
         if (pids[i] == 0) {
@@ -159,12 +162,17 @@ int main() {
 
     // start the game
     while (1) {
-        MIN = 10;
-        MAX = 20;
-        // fprintf(stdout, "MIN = ");
-        // fscanf(stdin, "%d", &MIN);
+        // MIN = 10;
+        // MAX = 20;
+        fprintf(stdout,"Round #%d\n",roundNumber);
+        fprintf(stdout, "MIN, MAX = ");
+        fscanf(stdin, "%d %d", &MIN,&MAX);
         // fprintf(stdout, "MAX = ");
         // fscanf(stdin, "%d", &MAX);
+        if(MIN>MAX){
+            fprintf(stderr,"MIN can't be greater than MAX. Enter again\n");
+            continue;
+        }
 
         // sending MIN and MAX to the clients
         for (int i = 0; i < numClients; i++) {
@@ -181,7 +189,7 @@ int main() {
         }
         // server guesses G
         serverGuess = getRandomNumber(MIN, MAX);
-        // printf("Server: %d \n",serverGuess);
+
         for (int i = 0; i < numClients; i++) {
             // server receives ith token from ith client
             if ((clientGuess[i] = receive(i)) == -1) {
@@ -193,7 +201,6 @@ int main() {
         int gameEnded = printRequiredStats();
         if (gameEnded) break;
     }
-
     for (int i = 0; i < numClients; i++) {
         // sending user defined signals to terminate the client programs
         kill(pids[i], SIGUSR1);
