@@ -100,6 +100,7 @@ int printRequiredStats() {
     for (int i = 0; i < numClients; i++) {
         fprintf(stdout, "%d\t\t", clientScore[i]);
     }
+    fprintf(stdout,"\nServer's Guess: %d",serverGuess);
     fprintf(stdout, "\n\n");
     fprintf(stdout, "Winner of round #%d is Client #%d\n", roundNumber,
             winnerOfCurrentRound);
@@ -165,7 +166,7 @@ int main() {
         // MIN = 10;
         // MAX = 20;
         fprintf(stdout,"Round #%d\n",roundNumber);
-        fprintf(stdout, "MIN, MAX = ");
+        fprintf(stdout, "MIN MAX = ");
         fscanf(stdin, "%d %d", &MIN,&MAX);
         // fprintf(stdout, "MAX = ");
         // fscanf(stdin, "%d", &MAX);
