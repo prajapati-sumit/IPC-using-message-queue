@@ -10,11 +10,10 @@ This project implements IPC using message queue to simulate a server-client game
 2.  The server is responsible to create and maintain the message queues.
 3.  The game consists of several rounds of server-client communications using message queues.
 4.  At the beginning of each round, the server accepts two integers `MIN` and `MAX` from the user, which it sends to all the clients using the message queue.
-5.  Each client `j` randomly generates a guessed token (an integer) within the range `[MIN:MAX]` and sends that to the server, denoted by `R<sub>j</sub>`.
+5.  Each client `j` randomly generates a guessed token (an integer) within the range `[MIN:MAX]` and sends that to the server, denoted by $R_j$ .
 6.  Now, the server also generates a token, say `G` (which is also an integer) in the range `[MIN:MAX]`, independently (which is not shared with the clients).
-7.  On receiving `R<sub>j</sub>`, from all the clients, the server computes:
-
-        δ = |Rj−G| / ∑(Rj−G) , ∀j ∈ {0,1,2,...,k-1}
+7.  On receiving $R_j$ , from all the clients, the server computes:
+    $$δ = \frac{|R_j−G|}{∑(R_j−G)} , ∀j ∈ [0,1,2,...,k-1]$$
 
 8.  Among all the clients, the client scoring the smallest `δ` wins the round and gets a score of `5`.
 9.  The first client crossing the total score 50 over multiple rounds is declared as the champion, which in turn ends the game.
@@ -48,9 +47,9 @@ This project implements IPC using message queue to simulate a server-client game
 
 ## References
 
--   [DexTutor YT Playlist](https://www.youtube.com/playlist?list=PLlr7wO747mNp5nn0hteJFnt1rpdx6GG-_)
--   StackOverflow - for helping in fixing every error I got.
--   [Linux Man Page](https://man7.org/linux/man-pages/man1/man.1.html)
+1. [DexTutor YT Playlist](https://www.youtube.com/playlist?list=PLlr7wO747mNp5nn0hteJFnt1rpdx6GG-_)
+2. StackOverflow - for helping in fixing every error I got.
+3. [Linux Man Page](https://man7.org/linux/man-pages/man1/man.1.html)
 
 ## Screenshots
 
