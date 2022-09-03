@@ -25,8 +25,6 @@ struct Message {
 int send(int data) {
     msg.type = CLIENT_TO_SERVER_ID;
     msg.num = data;
-    // fprintf(stdout, "client sent: %d to queue %d of type %ld\n", data, msqid,
-    //         msg.type);
 
     return msgsnd(msqid, (void *)&msg, sizeof(msg.num), 0);
 }
@@ -34,9 +32,6 @@ int receive() {
     msg_type = SERVER_TO_CLIENT_ID;
     msg.type = CLIENT_TO_SERVER_ID;
     int status = msgrcv(msqid, (void *)&msg, sizeof(msg.num), msg_type, 0);
-    // fprintf(stdout, "client received: %d from queue %d of type %ld\n",
-    // msg.num,
-    //         msqid, msg_type);
     return (status == -1 ? -1 : msg.num);
 }
 int getRandomNumber(int l, int r) { return (rand() % (r - l + 1)) + l; }
@@ -57,6 +52,7 @@ void init() {
 
 void handleSignal() { exit(0); }
 int main() {
+    // handling userdefined signal
     signal(SIGUSR1, handleSignal);
     init();
 
@@ -67,12 +63,22 @@ int main() {
                     strerror(errno));
             exit(1);
         }
+        if (MIN <= 0) {
+            // the game has ended
+            // the result is announced. Refer README for details
+            // the client sleeps until server sends exit signal
+            while (1) {
+            }
+        }
         if ((MAX = receive()) == -1) {
             fprintf(stderr, "error receiving the data from server: %s\n",
                     strerror(errno));
             exit(1);
         }
+        // guessing a random number
         guess = getRandomNumber(MIN, MAX);
+
+        // sending guessed number to server
         if (send(guess) == -1) {
             fprintf(stderr, "error sending the data to server\n");
             exit(1);
